@@ -2,7 +2,7 @@ Customized_Data
 
 VEHICLE
 NUMBER     CAPACITY
-  25         200
+  1         200
 
 CUSTOMER
 CUST NO.  XCOORD.   YCOORD.    DEMAND   READY TIME  DUE DATE   SERVICE   TIME

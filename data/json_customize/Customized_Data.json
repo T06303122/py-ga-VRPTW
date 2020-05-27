@@ -11415,6 +11415,6 @@
         ]
     ],
     "instance_name": "Customized_Data",
-    "max_vehicle_number": 25,
+    "max_vehicle_number": 1,
     "vehicle_capacity": 200.0
 }

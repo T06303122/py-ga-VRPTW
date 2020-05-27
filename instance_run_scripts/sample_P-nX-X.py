@@ -27,9 +27,9 @@ toolbox.register('population', tools.initRepeat, list, toolbox.individual)
 # GA Tools
 def gaVRPTW(pop, instName, unitCost, waitCost, delayCost, speed, indSize, popSize, cxPb, mutPb, NGen, exportCSV=False, customizeData=False):
     if customizeData:
-        jsonDataDir = os.path.join('data', 'json_customize')
+        jsonDataDir = os.path.join('C:\Users\s.janischka\PycharmProjects\py-ga-VRPTW\data', 'json_customize')
     else:
-        jsonDataDir = os.path.join('data', 'json')
+        jsonDataDir = os.path.join('C:\Users\s.janischka\PycharmProjects\py-ga-VRPTW\data', 'json')
     jsonFile = os.path.join(jsonDataDir, '%s.json' % instName)
     with open(jsonFile) as f:
         instance = load(f)

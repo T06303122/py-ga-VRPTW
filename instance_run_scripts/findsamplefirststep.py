@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-# sample_A-n32-k5-VRPMV.py
+# sample_A-n32-k5.py
 
- 
 import os
 import random
 import numpy
@@ -9,42 +8,43 @@ from json import load
 from csv import DictWriter
 from deap import base, creator, tools
 from timeit import default_timer as timer #for timer
+import multiprocessing
+
+# Global constant for individual size
+# Check before running
+IND_SIZE = 31
+
+# Create Fitness and Individual Classes
+creator.create('FitnessMax', base.Fitness, weights=(1.0,))
+creator.create('Individual', list, fitness=creator.FitnessMax)
+toolbox = base.Toolbox()
+
+# Attribute generator
+toolbox.register('indexes', random.sample, range(1, IND_SIZE + 1), IND_SIZE)
+# Structure initializers
+toolbox.register('individual', tools.initIterate, creator.Individual, toolbox.indexes)
+toolbox.register('population', tools.initRepeat, list, toolbox.individual)
 
 # GA Tools
-def gaTSPMV(instName, tsp, unitCost, initCost, waitCost, delayCost, speed, indSize, popSize, 
-                            lightUnitCost, lightInitCost, lightWaitCost, lightDelayCost, lightSpeed,
-                            lightRange, lightCapacity,
-                            cxPb, mutPb, NGen, exportCSV=False, customizeData=False):
+def gaVRPTW(pop, instName, unitCost, initCost, waitCost, delayCost, 
+            indSize, popSize, cxPb, mutPb, NGen, exportCSV=False, customizeData=False):
     if customizeData:
-        jsonDataDir = os.path.join('C:\Users\s.janischka\PycharmProjects\py-ga-VRPTW\data', 'json_customize')
+        jsonDataDir = os.path.join('C:\Users\s.janischka\PycharmProjects\py-ga-VRPTW\data', 'json_customize')  #used to be data
     else:
-        jsonDataDir = os.path.join('data', 'json')
+        jsonDataDir = os.path.join('C:\Users\s.janischka\PycharmProjects\py-ga-VRPTW\data', 'json')  #used to be data
     jsonFile = os.path.join(jsonDataDir, '%s.json' % instName)
     with open(jsonFile) as f:
         instance = load(f)
 
-    # Create Fitness and Individual Classes
-    creator.create('FitnessMax', base.Fitness, weights=(1.0,))
-    creator.create('Individual', list, fitness=creator.FitnessMax)
-    toolbox = base.Toolbox()
-    print "tsp at the moment is:" 
-    print tsp
-    splitLightList = mvcore.splitLightCustomers(instance, tsp, lightRange=lightRange, lightCapacity=lightCapacity)
-    toolbox.register('individual', mvcore.initMVIndividuals, creator.Individual, splitLightList, tsp)
-    toolbox.register('population', tools.initRepeat, list, toolbox.individual)
-
-    pop = toolbox.population(n=popSize)
-
     # Operator registering
     #original
-    #toolbox.register('evaluate', mvcore.evalTSPMS, instance=instance, unitCost=unitCost, initCost=initCost, waitCost=waitCost, delayCost=delayCost, speed=speed,
-    #                                                lightUnitCost=lightUnitCost, lightInitCost=lightInitCost, lightWaitCost=lightWaitCost, lightDelayCost=lightDelayCost, lightSpeed=lightSpeed)
-
-    toolbox.register('evaluate', mvcore.evalTSPMS, instance=instance, unitCost=unitCost, waitCost=waitCost, delayCost=delayCost, speed=speed,
-                                                    lightUnitCost=lightUnitCost, lightWaitCost=lightWaitCost, lightDelayCost=lightDelayCost, lightSpeed=lightSpeed)
+    #toolbox.register('evaluate', core.evalVRPTW, instance=instance, unitCost=unitCost, initCost=initCost, waitCost=waitCost, delayCost=delayCost)
+    toolbox.register('evaluate', core.evalVRPTW, instance=instance, unitCost=unitCost, waitCost=waitCost, delayCost=delayCost)
     toolbox.register('select', tools.selRoulette)
-    toolbox.register('mate', mvcore.cxSinglePointSwap)
+    toolbox.register('mate', core.cxPartialyMatched)
     toolbox.register('mutate', core.mutInverseIndexes)
+
+    pop = pop
     print pop
 
     # Results holders for exporting results to CSV file
@@ -116,7 +116,7 @@ def gaTSPMV(instName, tsp, unitCost, initCost, waitCost, delayCost, speed, indSi
     bestInd = tools.selBest(pop, 1)[0]
     print 'Best individual: %s' % bestInd
     print 'Fitness: %s' % bestInd.fitness.values[0]
-
+    core.printRoute(core.ind2route(bestInd, instance))
     print 'Total cost: %s' % (1 / bestInd.fitness.values[0])
     if exportCSV:
         csvFilename = '%s_uC%s_iC%s_wC%s_dC%s_iS%s_pS%s_cP%s_mP%s_nG%s.csv' % (instName, unitCost, initCost, waitCost, delayCost, indSize, popSize, cxPb, mutPb, NGen)
@@ -130,68 +130,47 @@ def gaTSPMV(instName, tsp, unitCost, initCost, waitCost, delayCost, speed, indSi
                 writer.writeheader()
                 for csvRow in csvData:
                     writer.writerow(csvRow)
-    return bestInd, bestInd.fitness.values[0]
+    return core.ind2route(bestInd, instance)
 
 def main():
     random.seed(64)
 
-    instName = 'A-n32-k5'
+    instName = 'Customized_Data'
 
     unitCost = 1.0
-    initCost = 0.0
     waitCost = 0.0
     delayCost = 0.0
-    speed = 1
-    lightUnitCost = 1.0
-    lightInitCost = 0
-    lightWaitCost = 0
-    lightDelayCost = 0
-    lightSpeed = 1
-    lightRange = 100
-    lightCapacity = 50
+    initCost = 0.0
+    indSize = IND_SIZE
+    popSize = 100
+    cxPb = 0.8
+    mutPb = 0.1
+    NGen = 100
 
-    popSize = 10
-    cxPb = 0
-    mutPb = 0
-    NGen = 1
-
-    exportCSV = False
+    exportCSV = True
     customizeData = True
 
-    # This should be the outcome of running the gavrptw module
-    bestVRP = [[8, 11, 4, 22, 29, 23, 30, 14], [12, 16, 5, 25, 10, 20], [15, 9, 6, 3, 1, 27, 26], [19, 17, 31, 21, 13, 28, 18], [24, 2, 7]]
-    bestVRPMV = []
-    bestVRPMVCost = 0
+    # Initialize the population.
+    # This method can't be parallelized at the moment
+    pop = toolbox.population(n=popSize)
 
-    for tsp in bestVRP:
-        indSize = len(tsp)
-        # Try first without multiprocessing for this substep
-        bestSubTSP, bestSubTSPFitness = gaTSPMV(
-            instName=instName,
-            tsp=tsp,
-            unitCost=unitCost,
-            initCost=initCost,
-            waitCost=waitCost,
-            delayCost=delayCost,
-            speed=speed,
-            lightUnitCost=lightUnitCost,
-            lightInitCost=lightInitCost,
-            lightWaitCost=lightWaitCost,
-            lightDelayCost=lightDelayCost,
-            lightRange=lightRange,
-            lightCapacity=lightCapacity,
-            lightSpeed=lightSpeed,
-            indSize=indSize,
-            popSize=popSize,
-            cxPb=cxPb,
-            mutPb=mutPb,
-            NGen=NGen,
-            exportCSV=exportCSV,
-            customizeData=customizeData
-        )
-        bestVRPMV.append(bestSubTSP)
-        bestVRPMVCost = bestVRPMVCost + 1/bestSubTSPFitness
-        print bestVRPMV, bestVRPMVCost
+    bestIndividual = gaVRPTW(
+        pop=pop,
+        instName=instName,
+        unitCost=unitCost,
+        initCost=initCost,
+        waitCost=waitCost,
+        delayCost=delayCost,
+        indSize=indSize,
+        popSize=popSize,
+        cxPb=cxPb,
+        mutPb=mutPb,
+        NGen=NGen,
+        exportCSV=exportCSV,
+        customizeData=customizeData
+    )
+
+    print bestIndividual
     return
 
 if __name__ == '__main__':
@@ -199,24 +178,14 @@ if __name__ == '__main__':
         import sys
         from os import path
         sys.path.append( path.dirname( path.dirname( path.abspath(__file__) ) ) )
-        from gatspmv import mvCore as mvcore  #this used to be import mvcore but the capital threw the program of
-        from gavrptw import core, utils 
+        from gavrptw import core, utils
     else:
-        from ..gatspmv import mvCore as mvcore #samesame
-        from ..gavrptw import core, utils 
+        from ..gavrptw import core, utils
+    pool = multiprocessing.Pool()
+    toolbox.register('map', pool.map)
+
     tic = timer()
     main()
     print 'Computing Time: %s' % (timer() - tic)
 
-# The output of the route: [[8, 11, 4, 22, 29, 23, 30, 14], [12, 16, 5, 25, 10, 20], [15, 9, 6, 3, 1, 27, 26], [19, 17, 31, 21, 13, 28, 18], [24, 2, 7]]
-# Is the mixed route: [[[11, 4, 22, 29], [8, 11, 29, 23, 30, 14]], [[12, 16, 5, 25, 10, 20]], [[15, 9, 6, 3, 1, 27, 26]], [[19, 31, 21, 13, 28], [19, 17, 28, 18]], [[24, 2, 7]]]
-# route 1 light: 11, 4, 22, 29
-# route 1 heavy: 0 - 8, 11, 29, 23, 30, 14 - 0
-# route 2 light: n/a
-# route 2 heavy: 0 - 12, 16, 5, 25, 10, 20 - 0
-# route 3 light: n/a
-# route 3 heavy: 0 - 15, 9, 6, 3, 1, 27, 26 - 0
-# route 4 light: [19, 31, 21, 13, 28]
-# route 4 heavy: 0 - 19, 17, 28, 18 - 0
-# route 5 light: n/a
-# route 5 heavy: 0 - 24, 2, 7 - 0
+    pool.close()

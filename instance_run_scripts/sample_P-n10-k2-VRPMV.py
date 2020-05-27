@@ -16,12 +16,13 @@ def gaTSPMV(instName, tsp, unitCost, initCost, waitCost, delayCost, speed, indSi
                             lightRange, lightCapacity,
                             cxPb, mutPb, NGen, exportCSV=False, customizeData=False):
     if customizeData:
-        jsonDataDir = os.path.join('data', 'json_customize')
+        jsonDataDir = os.path.join('C:\Users\s.janischka\PycharmProjects\py-ga-VRPTW\data', 'json_customize')
     else:
         jsonDataDir = os.path.join('data', 'json')
     jsonFile = os.path.join(jsonDataDir, '%s.json' % instName)
     with open(jsonFile) as f:
         instance = load(f)
+
 
     # Create Fitness and Individual Classes
     creator.create('FitnessMax', base.Fitness, weights=(1.0,))
@@ -36,8 +37,8 @@ def gaTSPMV(instName, tsp, unitCost, initCost, waitCost, delayCost, speed, indSi
     pop = toolbox.population(n=popSize)
 
     # Operator registering
-    toolbox.register('evaluate', mvcore.evalTSPMS, instance=instance, unitCost=unitCost, initCost=initCost, waitCost=waitCost, delayCost=delayCost, speed=speed,
-                                                    lightUnitCost=lightUnitCost, lightInitCost=lightInitCost, lightWaitCost=lightWaitCost, lightDelayCost=lightDelayCost, lightSpeed=lightSpeed)
+    toolbox.register('evaluate', mvcore.evalTSPMS, instance=instance, unitCost=unitCost, waitCost=waitCost, delayCost=delayCost, speed=speed,
+                                                    lightUnitCost=lightUnitCost, lightWaitCost=lightWaitCost, lightDelayCost=lightDelayCost, lightSpeed=lightSpeed)
     toolbox.register('select', tools.selRoulette)
     toolbox.register('mate', mvcore.cxSinglePointSwap)
     toolbox.register('mutate', core.mutInverseIndexes)
@@ -193,10 +194,10 @@ if __name__ == '__main__':
         import sys
         from os import path
         sys.path.append( path.dirname( path.dirname( path.abspath(__file__) ) ) )
-        from gatspmv import mvcore
+        from gatspmv import mvCore as mvcore
         from gavrptw import core, utils 
     else:
-        from ..gatspmv import mvcore
+        from ..gatspmv import mvCore as mvcore
         from ..gavrptw import core, utils 
     tic = timer()
     main()

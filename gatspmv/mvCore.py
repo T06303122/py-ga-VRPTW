@@ -71,6 +71,7 @@ def splitLightCustomers(instance, individual, lightRange=100, lightCapacity=50):
     clusterList = [0] * len(individual) #zero list with length of individual
 
     # Determine the order of the distance list
+    #distance list is distance from to the customer (does include depot to first but not last to depot)
     distList = distanceList(instance, individual)
     print distList
     sortedDistanceList= [0] * len(distList)
@@ -100,7 +101,7 @@ def splitLightCustomers(instance, individual, lightRange=100, lightCapacity=50):
         demand = culmulativeDemand(instance, individual, considerCustomer, considerCustomer)
 
         # First check if the customer is already considered, range feasibility and demand feasibility
-        if (any(considerList[clusterEdgeLocation[0]:clusterEdgeLocation[1]+1]) == True 
+        if (any(considerList[clusterEdgeLocation[0]:clusterEdgeLocation[1]+1]) == True
                 or distance > lightRange or demand > lightCapacity):
             continue
         # Passes all tests, initialize considerCustomer as lightCluster
@@ -159,16 +160,24 @@ def initMVIndividuals(icls, lightList, individual):
     # The current implmentation will create overlapping rendezvous points for consecutive
     # light resource subRoutes. This could be problematic for the "driver-helper" scenario
     # but efficient for "drone" scenario
+    print ""
+    print "CREATING INDIVIDUALS"
+
     genome = list()
 
     # Find the indicies of where lightList change from 0 to 1
     splitLocation = numpy.where(numpy.roll(lightList,1)!=lightList)[0]
-
+    print "splitlocation"
+    print splitLocation
     # Split the individual
     splitList = numpy.split(individual, splitLocation)
+    print "splitList"
+    print splitList
 
     # Flatten a list of odd elements from the splitList
     heavyGenome = ([item for sublist in splitList[0::2] for item in sublist])
+    print "heavyGenome"
+    print heavyGenome
 
     for i in range(2, len(splitList), 2):
         lightGenome = list()
@@ -178,17 +187,26 @@ def initMVIndividuals(icls, lightList, individual):
         genome.append(lightGenome)
 
     genome.append(heavyGenome)
+    print "genome before returning"
+    print genome
     return icls(genome)
 
 def evalTSPMS(MVindividual, instance, unitCost=1.0, waitCost=0, delayCost=0, speed=1,
                                     lightUnitCost=1.0, lightWaitCost=0, lightDelayCost=0, lightSpeed=1):
     # Evaluate the cost of a MVIndividual, created by the initMVIndividual method
     # Includes: init cost, travel cost and delay cost of light and heavy resource
-    # speed and lightSpeed are speed reducers for the heavy and light resource respectively 
+    # speed and lightSpeed are speed reducers for the heavy and light resource respectively
     # Expects the MSindividual to be [[L], [L], ..., [H]] format
     # The waitCost is when the resource has to wait for the arrival of another resource
     # or the beginning of the delivery window
     # The delayCost is when the resource is late to the delivery window
+
+    print " "
+    print "WELCOME TO THE EVALUATION BITCHES !!!!! WOOOOOOOOOOOOOOOOOOOOOOOOOOOP WOOOP WOOP "
+    print " "
+    print "The MV individual"
+    print MVindividual
+
     route = MVindividual
     totalCost = 0
     lightCost = 0
@@ -214,21 +232,29 @@ def evalTSPMS(MVindividual, instance, unitCost=1.0, waitCost=0, delayCost=0, spe
     heavyTravelCost = 0
     heavyFinishedTime = 0
     for customerID in route[-1]:
+        print "customer ID ", customerID
         heavyTravelTime = instance['distance_matrix'][lastCustomerID][customerID] * speed
+        print "heavyTravelTime ", heavyTravelTime
         heavyStartTime =  heavyFinishedTime + heavyTravelTime
+        print "heavyStartTime ", heavyStartTime
         heavyArrivalTime[str(customerID)] = heavyStartTime
+        print "heavyArrivalTime ", heavyArrivalTime
         heavyServiceTime = instance['customer_%d' % customerID]['service_time'] * 2
+        print "heavyServiceTime ", heavyServiceTime
         heavyFinishedTime = heavyStartTime + heavyServiceTime
+        print "heavyFinishedTime ", heavyFinishedTime
         heavyDepartureTime[str(customerID)] = heavyFinishedTime
+        print "heavryDepartureTime ", heavyDepartureTime
         heavyTimeCost = heavyTimeCost + (waitCost * max(instance['customer_%d' % customerID]['ready_time'] - (heavyTravelTime + heavyStartTime), 0)
                             + delayCost * max((heavyStartTime + heavyTravelTime) - instance['customer_%d' % customerID]['due_time'], 0))
         heavyTravelCost = heavyTravelCost + (unitCost * heavyTravelTime)
         lastCustomerID = customerID
 
     heavyCost = heavyTimeCost + heavyTravelCost + (instance['distance_matrix'][customerID][0] * speed * unitCost)
-    # print "Heavy cost is: %f" % heavyCost
-    # print "Heavy time cost: %f" % heavyTimeCost
-    # print "Heavy travel cost: %f" % heavyTravelCost
+    print "Heavy cost is: %f" % heavyCost
+    print "Heavy time cost: %f" % heavyTimeCost
+    print "Heavy travel cost: %f" % heavyTravelCost
+    print " "
 
     # Given the heavyArrivalTime, calculate the light travel time and cost
     # Update the resourceDelayTime accordingly for the rendezvous customer points
@@ -242,10 +268,13 @@ def evalTSPMS(MVindividual, instance, unitCost=1.0, waitCost=0, delayCost=0, spe
         lightStartTime = heavyArrivalTime[str(subLightRoute[0])]
         # Considers the travel cost and time cost of all light customers except rejoining back
         for customerID in subLightRoute[1:-1]:
+            print "customerID ", customerID
             lightTravelTime = instance['distance_matrix'][lastCustomerID][customerID] * lightSpeed
-            # print "lightTravelTime is between %d and %d is: %f" % (lastCustomerID, customerID, lightTravelTime)
+            print "lightTravelTime is between %d and %d is: %f" % (lastCustomerID, customerID, lightTravelTime)
             lightServiceTime = instance['customer_%d' % customerID]['service_time']
+            print "lightServicetime ", lightServiceTime
             lightElapsedTime = lightElapsedTime + lightTravelTime + lightServiceTime
+            print "lightElapsedTime ", lightElapsedTime
             # Consider any delay or waiting time because the light resource is earlier than customer ready time
             # or later than customer due time
             lightTimeCost = lightTimeCost + (lightWaitCost * max(instance['customer_%d' % customerID]['ready_time'] - (lightElapsedTime + lightStartTime), 0)
@@ -254,31 +283,40 @@ def evalTSPMS(MVindividual, instance, unitCost=1.0, waitCost=0, delayCost=0, spe
             lastCustomerID = customerID
         # Add on the last rejoining leg
         lightTravelTime = instance['distance_matrix'][lastCustomerID][subLightRoute[-1]]
-        # print "last leg travel time between %d and %d is: %f" % (lastCustomerID, subLightRoute[-1], lightTravelTime)
+        print "last leg travel time between %d and %d is: %f" % (lastCustomerID, subLightRoute[-1], lightTravelTime)
         lightFinishTime = lightStartTime + lightElapsedTime + lightTravelTime
-        # print "the finish time is: %f" % lightFinishTime
+        print "lightStartTime + lightElapsedTime + lightTravelTime", lightStartTime, "  ", lightElapsedTime, " ", lightTravelTime
+        print "the finish time is: %f" % lightFinishTime
         lightCost = lightCost + lightTravelCost + lightTimeCost + (lightUnitCost * lightTravelTime)
         # update the resourceDelayTime for the ending customer of the lightSubRoute
         resourceDelayTime[str(subLightRoute[-1])] = min(lightFinishTime - heavyDepartureTime[str(subLightRoute[-1])],
                                                         lightFinishTime - heavyArrivalTime[str(subLightRoute[-1])], key=abs)
-    # print "Light cost is: %f" % lightCost
+        print "resourceDelayTime ", resourceDelayTime
+    print "Light cost is: %f" % lightCost
 
     # Calculate the waiting penalty given the resourceDelayTime
     # If the value is negative, then the light resource waits for the heavy
     # If the value is positive, the the heavy resource waits for the light
     for customerID in resourceDelayTime:
+        print "customerID ", customerID
+        print "totalcost ", totalCost
         if resourceDelayTime[customerID] <= 0:
             totalCost = totalCost + (lightWaitCost * abs(resourceDelayTime[customerID]))
+            print "light waiting for heavy ", totalCost
         else:
             totalCost = totalCost + (waitCost * resourceDelayTime[customerID])
+            print "heavy waiting for light ", totalCost
+    print "heavyArrivalTime"
+    print heavyArrivalTime
+    print "heavryDepartureTime"
+    print heavyDepartureTime
+    print "resourceDelayTime"
+    print resourceDelayTime
 
-    # print heavyArrivalTime
-    # print heavyDepartureTime
-    # print resourceDelayTime
-
-    # print "total cost is: %f" % totalCost
+    print "total cost is: %f" % totalCost
 
     totalCost = totalCost + lightCost + heavyCost
+    print " totalCost + lightCost + heavyCost ",  totalCost, " ", lightCost, "  ", heavyCost
     fitness = 1/totalCost
     return fitness,
 
@@ -320,3 +358,180 @@ def cxSinglePointSwap(ind1, ind2):
 
 # cost= evalTSPMS(SAMPLE_VRPMS, instance, unitCost=0.1, waitCost=0.05, delayCost=0.01, speed=5, lightUnitCost=0.06, lightWaitCost=0, lightDelayCost=0.01, lightSpeed=2.5)
 # print 1/cost[0]
+
+
+def writeEval(MVindividual, instance, unitCost=1.0, waitCost=0, delayCost=0, speed=1,
+                                    lightUnitCost=1.0, lightWaitCost=0, lightDelayCost=0, lightSpeed=1):
+    # Evaluate the cost of a MVIndividual, created by the initMVIndividual method
+    # Includes: init cost, travel cost and delay cost of light and heavy resource
+    # speed and lightSpeed are speed reducers for the heavy and light resource respectively
+    # Expects the MSindividual to be [[L], [L], ..., [H]] format
+    # The waitCost is when the resource has to wait for the arrival of another resource
+    # or the beginning of the delivery window
+    # The delayCost is when the resource is late to the delivery window
+
+    print " "
+    print "WELCOME TO THE writing BITCHES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+    print " "
+    print "The MV individual"
+    print MVindividual
+
+    route = MVindividual
+    totalCost = 0
+    lightCost = 0
+    heavyCost = 0
+
+    # Dictionary to store the heavy arrival time at this customer
+    heavyArrivalTime = dict()
+    allArrivalTimes = dict()
+    # Dictionary to store the heavy departure time at this customer
+    heavyDepartureTime = dict()
+    allDeparturetime = dict()
+    # Dictionary to store the delay time from the heavy POV at this customer
+    # Updated as the light resource are rejoining at this customer
+    # Calculated as light resource arrival time - heavy resource departure time
+    # If value is positive then heavy resource was waiting
+    # If value is negative then light resource was waiting
+    resourceDelayTime = dict()
+
+    # Update the heavyArrivalTime and heavyDepartureTime of
+    # all heavy resource customers, and calculate the heavy travel cost
+    lastCustomerID = 0
+    heavyTravelTime = 0
+    heavyServiceTime = 0
+    heavyTimeCost = 0
+    heavyTravelCost = 0
+    heavyFinishedTime = 0
+    for customerID in route[-1]:
+        print "customer ID ", customerID
+        heavyTravelTime = instance['distance_matrix'][lastCustomerID][customerID] * speed
+        print "heavyTravelTime ", heavyTravelTime
+        heavyStartTime =  heavyFinishedTime + heavyTravelTime
+        print "heavyStartTime ", heavyStartTime
+        heavyArrivalTime[str(customerID)] = heavyStartTime
+        print "heavyArrivalTime ", heavyArrivalTime
+        heavyServiceTime = instance['customer_%d' % customerID]['service_time'] * 2
+        print "heavyServiceTime ", heavyServiceTime
+        heavyFinishedTime = heavyStartTime + heavyServiceTime
+        print "heavyFinishedTime ", heavyFinishedTime
+        heavyDepartureTime[str(customerID)] = heavyFinishedTime
+        print "heavryDepartureTime ", heavyDepartureTime
+        heavyTimeCost = heavyTimeCost + (waitCost * max(instance['customer_%d' % customerID]['ready_time'] - (heavyTravelTime + heavyStartTime), 0)
+                            + delayCost * max((heavyStartTime + heavyTravelTime) - instance['customer_%d' % customerID]['due_time'], 0))
+        heavyTravelCost = heavyTravelCost + (unitCost * heavyTravelTime)
+        lastCustomerID = customerID
+
+    heavyCost = heavyTimeCost + heavyTravelCost + (instance['distance_matrix'][customerID][0] * speed * unitCost)
+    print "Heavy cost is: %f" % heavyCost
+    print "Heavy time cost: %f" % heavyTimeCost
+    print "Heavy travel cost: %f" % heavyTravelCost
+    print " "
+    allArrivalTimes = heavyArrivalTime
+    allDeparturetime = heavyDepartureTime
+    print " all arrival - all departure"
+    print allArrivalTimes
+    print allDeparturetime
+
+    # Given the heavyArrivalTime, calculate the light travel time and cost
+    # Update the resourceDelayTime accordingly for the rendezvous customer points
+    for subLightRoute in route[:-1]:
+        lightElapsedTime = 0
+        lightTravelTime = 0
+        lightServiceTime = 0
+        lightTimeCost = 0
+        lightTravelCost = 0
+        lastCustomerID = subLightRoute[0]
+        lightStartTime = heavyArrivalTime[str(subLightRoute[0])]
+        currentime = lightStartTime
+        # Considers the travel cost and time cost of all light customers except rejoining back
+        for customerID in subLightRoute[1:-1]:
+            print "customerID ", customerID
+            lightTravelTime = instance['distance_matrix'][lastCustomerID][customerID] * lightSpeed
+            # arrival at the first
+            allArrivalTimes[str(customerID)] = lightTravelTime + currentime
+            print "lightTravelTime is between %d and %d is: %f" % (lastCustomerID, customerID, lightTravelTime)
+            lightServiceTime = instance['customer_%d' % customerID]['service_time']
+            allDeparturetime[str(customerID)] = currentime + lightServiceTime
+            print "lightServicetime ", lightServiceTime
+            lightElapsedTime = lightElapsedTime + lightTravelTime + lightServiceTime
+            print "lightElapsedTime ", lightElapsedTime
+            # Consider any delay or waiting time because the light resource is earlier than customer ready time
+            # or later than customer due time
+            lightTimeCost = lightTimeCost + (lightWaitCost * max(instance['customer_%d' % customerID]['ready_time'] - (lightElapsedTime + lightStartTime), 0)
+                            + lightDelayCost * max((lightStartTime + lightElapsedTime) - instance['customer_%d' % customerID]['due_time'], 0))
+            lightTravelCost = lightTravelCost + (lightUnitCost * lightTravelTime)
+            lastCustomerID = customerID
+        # Add on the last rejoining leg
+        lightTravelTime = instance['distance_matrix'][lastCustomerID][subLightRoute[-1]]
+        print "last leg travel time between %d and %d is: %f" % (lastCustomerID, subLightRoute[-1], lightTravelTime)
+        lightFinishTime = lightStartTime + lightElapsedTime + lightTravelTime
+        print "lightStartTime + lightElapsedTime + lightTravelTime", lightStartTime, "  ", lightElapsedTime, " ", lightTravelTime
+        print "the finish time is: %f" % lightFinishTime
+        lightCost = lightCost + lightTravelCost + lightTimeCost + (lightUnitCost * lightTravelTime)
+        # update the resourceDelayTime for the ending customer of the lightSubRoute
+        resourceDelayTime[str(subLightRoute[-1])] = min(lightFinishTime - heavyDepartureTime[str(subLightRoute[-1])],
+                                                        lightFinishTime - heavyArrivalTime[str(subLightRoute[-1])], key=abs)
+
+        #if drone arrives later than the ssumed departure time of the truck -> make truck delay everywhere
+        if lightFinishTime > heavyDepartureTime[str(subLightRoute[-1])]:
+            #indeed give everyone delay
+            givedelay= lightFinishTime-heavyDepartureTime[str(subLightRoute[-1])]
+            heavyDepartureTime[str(subLightRoute[-1])] = heavyDepartureTime[str(subLightRoute[-1])] + givedelay
+            allDeparturetime[str(subLightRoute[-1])] = allDeparturetime[str(subLightRoute[-1])] + givedelay
+
+            startproblemsat = str(subLightRoute[-1])
+            print "startproblems at ", startproblemsat
+            problemshappened = 0
+            for customers in route[-1]:
+                print "truying to solve delays ", customers
+                if problemshappened == 1:
+                    heavyArrivalTime[str(customers)] = heavyArrivalTime[str(customers)] + givedelay
+                    heavyDepartureTime[str(customers)] = heavyDepartureTime[str(customers)] + givedelay
+                    allArrivalTimes[str(customers)] = allArrivalTimes[str(customers)] + givedelay
+                    allDeparturetime[str(customers)] = allDeparturetime[str(customers)] + givedelay
+                if customers == startproblemsat:
+                    problemshappened = 1
+
+
+
+
+
+        print "resourceDelayTime ", resourceDelayTime
+    print "Light cost is: %f" % lightCost
+
+    # Calculate the waiting penalty given the resourceDelayTime
+    # If the value is negative, then the light resource waits for the heavy
+    # If the value is positive, the the heavy resource waits for the light
+    for customerID in resourceDelayTime:
+        print "customerID ", customerID
+        print "totalcost ", totalCost
+        if resourceDelayTime[customerID] <= 0:
+            totalCost = totalCost + (lightWaitCost * abs(resourceDelayTime[customerID]))
+            print "light waiting for heavy ", totalCost
+        else:
+            totalCost = totalCost + (waitCost * resourceDelayTime[customerID])
+            print "heavy waiting for light ", totalCost
+    print "heavyArrivalTime"
+    print heavyArrivalTime
+    print "heavryDepartureTime"
+    print heavyDepartureTime
+    print "resourceDelayTime"
+    print resourceDelayTime
+
+    print "total cost is: %f" % totalCost
+
+    totalCost = totalCost + lightCost + heavyCost
+    print " totalCost + lightCost + heavyCost ",  totalCost, " ", lightCost, "  ", heavyCost
+    fitness = 1/totalCost
+
+    #writing
+    f= open("custdate.txt", "a+")
+    for customer in allArrivalTimes:
+        print "printing ", customer
+        f.write(customer)
+        f.write("\n")
+        f.write("arrival %d\n" %allArrivalTimes[customer])
+        f.write("departure %d\r\n" % allDeparturetime[customer])
+    f.close()
+
+    return fitness,

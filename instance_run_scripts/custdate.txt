@@ -1,0 +1,94 @@
+newfile 
+11
+arrival 321
+departure 381
+25
+arrival 968
+departure 1148
+26
+arrival 572
+departure 752
+20
+arrival 785
+departure 863
+21
+arrival 781
+departure 863
+22
+arrival 773
+departure 953
+23
+arrival 592
+departure 662
+28
+arrival 580
+departure 662
+13
+arrival 348
+departure 381
+1
+arrival 93
+departure 273
+3
+arrival 291
+departure 471
+15
+arrival 660
+departure 730
+16
+arrival 640
+departure 820
+19
+arrival 421
+departure 402
+2
+arrival 103
+departure 283
+5
+arrival 312
+departure 492
+7
+arrival 958
+departure 1138
+6
+arrival 330
+departure 402
+9
+arrival 1342
+departure 1522
+8
+arrival 1152
+departure 1332
+24
+arrival 1350
+departure 1411
+10
+arrival 83
+departure 263
+12
+arrival 422
+departure 463
+14
+arrival 614
+departure 794
+17
+arrival 385
+departure 463
+18
+arrival 373
+departure 553
+31
+arrival 1051
+departure 1231
+30
+arrival 1341
+departure 1411
+29
+arrival 1321
+departure 1501
+27
+arrival 1333
+departure 1411
+4
+arrival 1643
+departure 1823
