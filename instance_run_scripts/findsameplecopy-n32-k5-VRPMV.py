@@ -40,10 +40,10 @@ def main():
     lightRange = 100
     lightCapacity = 50
 
-    popSize = 200
+    popSize = 50
     cxPb = 0.9
     mutPb = 0
-    NGen = 100
+    NGen = 10
 
     exportCSV = False
     customizeData = True
@@ -244,7 +244,14 @@ def gaTSPMV(instName, tsp, unitCost, initCost, waitCost, delayCost, speed, indSi
                 writer.writeheader()
                 for csvRow in csvData:
                     writer.writerow(csvRow)
+
+    # visualise routes
+    print "before supposed visualisation"
+    utils.visualizeRoutes(instName, instance, bestInd, containsLightResource=True)
+    print "after supposed visualisation"
     return bestInd, bestInd.fitness.values[0]
+
+
 
 
 

@@ -130,6 +130,11 @@ def gaVRPTW(pop, instName, unitCost, initCost, waitCost, delayCost,
                 writer.writeheader()
                 for csvRow in csvData:
                     writer.writerow(csvRow)
+
+    print "before supposed visualisation"
+    utils.plotResults()
+    #utils.visualizeRoutes(instName, instance, bestInd, containsLightResource=False)
+    print "after supposed visualisation"
     return core.ind2route(bestInd, instance)
 
 def main():
